@@ -1,5 +1,5 @@
 [package]
-name = "gameboy_core"
+name = "gameboy"
 version = "0.1.0"
 authors = [ "Will Johnston <wbjohnston@gmail.com>" ]
 edition = "2018"
@@ -11,7 +11,6 @@ path = "src/bin/debugger.rs"
 [lib]
 name = "gameboy"
 path = "src/lib.rs"
-crate-type = [ "cdylib" ]
 
 [dependencies]
 failure = "0.1"

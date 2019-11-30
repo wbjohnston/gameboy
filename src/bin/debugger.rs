@@ -8,7 +8,7 @@ use {
     fs::{File},
     env::{args},
   },
-  gameboy_core::{
+  gameboy::{
     Gameboy,
     Cartridge
   },
