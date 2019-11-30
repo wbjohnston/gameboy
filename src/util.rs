@@ -52,27 +52,56 @@ mod test {
   use quickcheck_macros::quickcheck;
 
   #[test]
-  fn set_lower_works() {
-    let val = 0xDEAD;
-    let sampled = set_lower(val, 0xED);
-    assert_eq!(val, 0xDEED);
+  fn get_bit_works() {
+    // .          fedc ba98 7654 3210
+    let input = 0b0110_1001_0000_0000;
+    let expected = [
+      false,
+      false,
+      false,
+      false,
+
+      false,
+      false,
+      false,
+      false,
+
+      true,
+      false,
+      false,
+      true,
+
+      false,
+      true,
+      true,
+      false
+    ];
+
+    for i in 0..=0xF {
+      assert_eq!(get_bit(input, i), expected[i as usize]);
+    }
+
   }
 
-  #[test]
-  fn set_upper_works() {
-    let val = 0xDEAD;
-    let sampled = set_upper(val, 0xED);
-    assert_eq!(val, 0xEDAD);
+  #[quickcheck]
+  fn set_upper_works(target: u16, upper: u8) -> bool {
+    let val = set_upper(target, upper);
+    let (sampled, _) = unpack_bytes_from_double(val);
+    sampled == upper
   }
 
-  #[test]
-  fn unpack_returns_bytes_in_correct_order() {
-    let val = 0xDEAD;
-    let (upper, lower) = unpack_bytes_from_double(val);
-    assert_eq!(upper, 0xDE);
-    assert_eq!(lower, 0xAD);
+  #[quickcheck]
+  fn set_lower_works(target: u16, lower: u8) -> bool {
+    let val = set_upper(target, lower);
+    let (sampled, _) = unpack_bytes_from_double(val);
+    sampled == lower
   }
 
+  #[quickcheck]
+  fn unpack_returns_bytes_in_correct_order(upper: u8, lower: u8) -> bool {
+    let (new_upper, new_lower) = unpack_bytes_from_double(pack_bytes_into_double(upper, lower));
+    (upper, lower) == (new_upper, new_lower)
+  }
 
   #[quickcheck]
   fn pack_and_unpack_is_equal(double: u16) -> bool {
