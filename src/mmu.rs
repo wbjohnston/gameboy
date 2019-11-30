@@ -87,7 +87,7 @@ impl Memory for MMU {
   fn read(&self, address: u16) -> u8 {
     match address {
       Self::INTERRUPT_ENABLE_REG_ADDR                       => self.ier,
-      Self::RAM_1_START_ADDR..Self::RAM_1_END_ADDR               => unimplemented!(),
+      Self::RAM_1_START_ADDR..Self::RAM_1_END_ADDR          => unimplemented!(),
       Self::EMPTY_1_START_ADDR..Self::EMPTY_1_END_ADDR      => 0,
       Self::IO_START_ADDR..Self::IO_END_ADDR                => self.iom[(address - Self::IO_START_ADDR) as usize],
       Self::EMPTY_0_START_ADDR..Self::EMPTY_0_END_ADDR      => 0,

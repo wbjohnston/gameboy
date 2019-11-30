@@ -14,11 +14,11 @@ pub fn pack_bytes_into_double(upper: u8, lower: u8) -> u16 {
 }
 
 pub fn set_lower(target: u16, value: u8) -> u16 {
-  (target & 0xFF00) | value.overflowing_shl(8).0 as u16
+  (target & 0xFF00) | value as u16
 }
 
 pub fn set_upper(target: u16, value: u8) -> u16 {
-  (target & 0x00FF) | value as u16
+  (target & 0x00FF) | (value as u16) << 8
 }
 
 pub fn set_bit(target: u16, n: u8, value: bool) -> u16 {
@@ -42,5 +42,41 @@ pub trait Memory {
     let (upper, lower) = unpack_bytes_from_double(value);
     self.write(address, upper);
     self.write(address + 1, lower);
+  }
+}
+
+
+#[cfg(test)]
+mod test {
+  use super::*;
+  use quickcheck_macros::quickcheck;
+
+  #[test]
+  fn set_lower_works() {
+    let val = 0xDEAD;
+    let sampled = set_lower(val, 0xED);
+    assert_eq!(val, 0xDEED);
+  }
+
+  #[test]
+  fn set_upper_works() {
+    let val = 0xDEAD;
+    let sampled = set_upper(val, 0xED);
+    assert_eq!(val, 0xEDAD);
+  }
+
+  #[test]
+  fn unpack_returns_bytes_in_correct_order() {
+    let val = 0xDEAD;
+    let (upper, lower) = unpack_bytes_from_double(val);
+    assert_eq!(upper, 0xDE);
+    assert_eq!(lower, 0xAD);
+  }
+
+
+  #[quickcheck]
+  fn pack_and_unpack_is_equal(double: u16) -> bool {
+    let (upper, lower) = unpack_bytes_from_double(double);
+    double == pack_bytes_into_double(upper, lower)
   }
 }
