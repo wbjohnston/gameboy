@@ -86,6 +86,11 @@ fn execute_command(commands: &[&str], gameboy: &mut Gameboy) -> Result<bool, Err
         Ok(false)
       }
     }
+    "d" | "display" => {
+      let d: Vec<_> = gameboy.display().collect();
+      dbg!(d);
+      Ok(false)
+    }
     "mpc" => {
       execute_command(&["m", format!("{}", gameboy.cpu.pc).as_str()], gameboy)
     }

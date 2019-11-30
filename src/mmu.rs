@@ -83,6 +83,12 @@ impl MMU {
 
 }
 
+impl MMU {
+  pub fn vram(&self) -> impl Iterator<Item=&u8> {
+    self.vram.iter()
+  }
+}
+
 impl Memory for MMU {
   fn read(&self, address: u16) -> u8 {
     match address {

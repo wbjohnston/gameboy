@@ -36,4 +36,8 @@ impl Gameboy {
     pub fn step(&mut self) -> u8 {
         self.cpu.step(&mut self.mmu)
     }
+
+    pub fn display(&self) -> impl Iterator<Item=&u8> {
+        self.mmu.vram()
+    }
 }
