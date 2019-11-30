@@ -5,7 +5,7 @@ use {
   }
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct CPU {
   pub af: u16,
   pub bc: u16,
@@ -1107,19 +1107,5 @@ impl CPU {
 
   fn set_e(&mut self, value: u8) {
     self.de = set_lower(self.de, value);
-  }
-}
-
-
-impl Default for CPU {
-  fn default() -> Self {
-    CPU {
-      af: 0x01B0,
-      bc: 0x00B0,
-      de: 0x00D8,
-      hl: 0x014D,
-      sp: 0xFFFE,
-      pc: 0x0100,
-    }
   }
 }

@@ -9,7 +9,7 @@ pub use {
     cartridge::Cartridge,
 };
 use {
-    util::*
+    util::*,
 };
 
 
@@ -21,6 +21,15 @@ pub struct Gameboy {
 }
 
 impl Gameboy {
+    pub fn new(bios: [u8; mmu::MMU::BIOS_SIZE]) -> Self {
+        Gameboy {
+            mmu: mmu::MMU {
+                bios,
+                ..mmu::MMU::default()
+            },
+            ..Gameboy::default()
+        }
+    }
     /// Create a new gameboy with a cartridge loaded
     pub fn new_with_cartridge(cartridge: cartridge::Cartridge) -> Self {
         Gameboy {

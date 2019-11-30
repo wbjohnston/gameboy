@@ -2,45 +2,54 @@ use {
   crate::{
     cartridge::Cartridge,
     util::Memory,
-  }
+  },
+  derivative::{Derivative}
 };
 
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct MMU {
+  #[derivative(Debug="ignore")]
   pub cartridge: Option<Box<Cartridge>>,
+  #[derivative(Debug="ignore")]
+  pub bios: [u8; Self::BIOS_SIZE],
+  #[derivative(Debug="ignore")]
   pub vram: [u8; Self::VRAM_SIZE],            // video ram
+  #[derivative(Debug="ignore")]
   pub oam: [u8; Self::OAM_SIZE],              // sprite attrib memory
+  #[derivative(Debug="ignore")]
   pub iom: [u8; Self::IO_SIZE],               // IO memory
+  #[derivative(Debug="ignore")]
   pub ram: [u8; Self::RAM_0_SIZE],                           // internal ram
+  #[derivative(Debug="ignore")]
   pub sram: [u8; Self::SRAM_SIZE],            // switchable ram
   pub ier: u8,                                // interrupt enable register
+
+  pub bios_disabled: bool,
 }
 
 impl Default for MMU {
   fn default() -> Self {
     Self {
       cartridge: None,
+      bios: [0; Self::BIOS_SIZE],
       vram: [0; Self::VRAM_SIZE],            // video ram
       oam: [0; Self::OAM_SIZE],              // sprite attrib memory
       iom: [0; Self::IO_SIZE],               // IO memory
       ram: [0; Self::RAM_0_SIZE],                           // internal ram
       sram: [0; Self::SRAM_SIZE],            // switchable ram
       ier: 0,                                // interrupt enable register
-    }
-  }
-}
-
-impl std::fmt::Debug for MMU {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    if self.cartridge.is_some() {
-      write!(f, "MMU(..TODO..)")
-    } else {
-      write!(f, "MMU[..TODO..]")
+      bios_disabled: false,
     }
   }
 }
 
 
 impl MMU {
+  pub const BIOS_START_ADDR: u16                    = 0x0000;
+  pub const BIOS_END_ADDR: u16                      = 0x00FF;
+  pub const BIOS_SIZE: usize                        = (Self::BIOS_END_ADDR - Self::BIOS_START_ADDR + 1) as usize;
+
   //  interrupt Enable Register     --------------- FFFF
   pub const INTERRUPT_ENABLE_REG_ADDR: u16          = 0xFFFF;
   //  Internal RAM                  --------------- FF80 - FFFF
@@ -102,10 +111,13 @@ impl Memory for MMU {
       Self::RAM_0_START_ADDR..Self::RAM_0_END_ADDR          => self.ram[(address - Self::RAM_0_START_ADDR) as usize],
       Self::SRAM_START_ADDR..Self::SRAM_END_ADDR            => self.sram[(address - Self::SRAM_START_ADDR) as usize],
       Self::VRAM_START_ADDR..Self::VRAM_END_ADDR            => self.vram[(address - Self::VRAM_START_ADDR) as usize],
+      Self::BIOS_START_ADDR..Self::BIOS_END_ADDR if !self.bios_disabled => {
+        self.bios[(address - Self::BIOS_START_ADDR) as usize]
+      }
       Self::CARTRIDGE_START_ADDR..Self::CARTRIDGE_END_ADDR  => self.cartridge
         .as_ref()
         .map(|x| x.read(address))
-        .unwrap_or(0)
+        .unwrap(),
     }
   }
 

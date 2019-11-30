@@ -30,13 +30,23 @@ enum AppError {
 fn main() -> Result<(), Error> {
   let args: Vec<_> = args().collect();
 
-  if args.len() < 2 {
+  if args.len() < 3 {
+    println!("usage: {} <bios> <rom>", args[0]);
     return Err(AppError::NotEnoughArguments.into())
   }
 
+  let bios = {
+    let mut buffer = vec![];
+    let mut bios = [0; gameboy::mmu::MMU::BIOS_SIZE];
+    let mut file = File::open(&args[1])?;
+    file.read_to_end(&mut buffer)?;
+    bios.copy_from_slice(&mut buffer[0..gameboy::mmu::MMU::BIOS_SIZE]);
+    bios
+  };
+
   let cartridge = {
     let mut buffer = vec![];
-    let mut file = File::open(&args[1])?;
+    let mut file = File::open(&args[2])?;
     file.read_to_end(&mut buffer)?;
     match Cartridge::maybe_from_bytes(buffer.as_ref()) {
       Some(cartridge) => cartridge,
@@ -47,7 +57,7 @@ fn main() -> Result<(), Error> {
   let stdin = io::stdin();
   let stdin_lock = stdin.lock();
   let mut reader = io::BufReader::new(stdin_lock);
-  let mut gameboy = Gameboy::new_with_cartridge(cartridge);
+  let mut gameboy = Gameboy::new(bios);
   let mut buffer = String::new();
 
   loop {
