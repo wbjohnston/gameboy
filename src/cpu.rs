@@ -81,6 +81,16 @@ impl CPU {
         8
       }
 
+      // DEC B
+      // 1  4
+      // Z 1 H -
+      0x05 => {
+        self.set_b(self.b().overflowing_sub(1).0);
+        self.set_flags(Some(self.b() == 0), Some(true), Some(get_bit(self.bc, Self::HALF_BORROW_BIT)), None);
+        self.pc += 1;
+        4
+      }
+
       // LD (a16),SP
       // 3  20
       // - - - -
@@ -231,7 +241,7 @@ impl CPU {
       // - - - -
       0x20 => {
         let offset = mmu.read(self.pc + 1) as i8;
-        if self.get_z_flag() {
+        if !self.get_z_flag() {
           self.pc = if offset < 0 {
             self.pc.overflowing_sub(-offset as u16).0
           } else {
@@ -244,12 +254,30 @@ impl CPU {
         }
       }
 
+      // LD HL,d16
+      // 3  12
+      // - - - -
+      0x21 => {
+        self.hl = mmu.read_double(self.pc + 1);
+        self.pc += 3;
+        12
+      }
+
       // LD (HL+),A
       // 1  8
       // - - - -
       0x22 => {
         mmu.write(self.hl, self.a());
         self.hl = self.hl.overflowing_add(1).0;
+        self.pc += 1;
+        8
+      }
+
+      // INC HL
+      // 1  8
+      // - - - -
+      0x23 => {
+        self.hl += 1;
         self.pc += 1;
         8
       }
@@ -311,6 +339,34 @@ impl CPU {
         self.set_flags(None, Some(true), Some(true), None);
         self.pc += 1;
         4
+      }
+
+      // LD SP,d16
+      // 3  12
+      // - - - -
+      0x31 => {
+        self.sp = mmu.read_double(self.pc + 1);
+        self.pc += 3;
+        12
+      }
+
+      // LD (HL-),A
+      // 1  8
+      // - - - -
+      0x32 => {
+        mmu.write(self.hl, self.a());
+        self.hl -= 1;
+        self.pc += 1;
+        8
+      }
+
+      // LD A,d8
+      // 2  8
+      // - - - -
+      0x3E => {
+        self.set_a(mmu.read(self.pc + 1));
+        self.pc += 2;
+        8
       }
 
       // LD B,A
@@ -679,6 +735,21 @@ impl CPU {
         4
       }
 
+      // ADD A,(HL)
+      // 1  8
+      // Z 0 H C
+      0x86 => {
+        self.set_a(self.a().overflowing_add(mmu.read(self.hl)).0);
+        self.set_flags(
+          Some(self.a() == 0),
+          Some(false),
+          Some(get_bit(self.af, Self::HALF_CARRY_BIT)),
+          Some(get_bit(self.af, Self::CARRY_BIT))
+        );
+        self.pc += 1;
+        8
+      }
+
       // SUB B
       // 1  4
       // Z 1 H C
@@ -939,6 +1010,16 @@ impl CPU {
         4
       }
 
+      // XOR A
+      // 1  4
+      // Z 0 0 0
+      0xAF => {
+        self.set_a(self.a() ^ self.a());
+        self.set_flags(Some(self.a() == 0), Some(false), Some(false), Some(false));
+        self.pc += 1;
+        4
+      }
+
       // JP a16
       // 3  16
       // - - - -
@@ -946,13 +1027,26 @@ impl CPU {
         self.pc = mmu.read_double(self.pc + 1);
         16
       }
+
+      0xCB => match mmu.read(self.pc + 1) {
+        // BIT 7,H
+        // 2  8
+        // Z 0 1 -
+        0x7C => {
+          self.set_flags(Some(get_bit(self.bc, 7 + 8)), Some(false), Some(true), None);
+          self.pc += 2;
+          8
+        }
+        b => unimplemented!("0xCB prefixed command not implemented 0x{:x}", b)
+      }
+
       // CALL Z,a16
       // 3  24/12
       // - - - -
       0xCC => {
         if self.get_z_flag() {
           mmu.write_double(self.sp, self.pc);
-          self.sp += 1;
+          self.sp -= 2;
           self.pc = mmu.read_double(self.pc + 1);
           24
         } else {
@@ -976,6 +1070,44 @@ impl CPU {
         // self.pc += 2;
         // 8
         unimplemented!()
+      },
+
+      // LDH (a8),A
+      // 2  12
+      // - - - -
+      0xE0 => {
+        mmu.write(MMU::IO_START_ADDR + mmu.read(self.pc + 1) as u16, self.a());
+        self.pc += 2;
+        12
+      }
+
+      // LD (C),A
+      // 2  8
+      // - - - -
+      0xE2 => {
+        mmu.write(self.c() as u16, self.a());
+        self.pc += 2;
+        8
+      }
+
+      // PUSH HL
+      // 1  16
+      // - - - -
+      0xE5 => {
+        mmu.write_double(self.sp, self.hl);
+        self.sp -= 2;
+        self.pc += 1;
+        16
+      }
+
+      // RST 38H
+      // 1  16
+      // - - - -
+      0xFF => {
+        mmu.write_double(self.sp, self.pc);
+        self.sp -= 2;
+        self.pc = 0x38;
+        16
       }
       b => unimplemented!("command not implemented 0x{:x}", b)
     };
