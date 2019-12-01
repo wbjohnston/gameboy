@@ -15,6 +15,7 @@ pub enum Cartridge {
 
 impl Cartridge {
   const ROM_ONLY_SIZE: usize = 0xFFFF;
+  const NO_RAM_READ_VALUE: u8 = 0xFF;
 
   pub fn maybe_from_bytes(bytes: &[u8]) -> Option<Self> {
     if bytes.len() <= Self::ROM_ONLY_SIZE {
@@ -28,7 +29,13 @@ impl Cartridge {
   }
 
   pub fn read_ram(&self, address: u16) -> u8 {
-    unimplemented!()
+    Self::NO_RAM_READ_VALUE
+  }
+
+  pub fn write_ram(&mut self, address: u16, value: u8) {
+    match self {
+      _ => unimplemented!("cannot write value = {} to address '{}'", value, address)
+    }
   }
 }
 

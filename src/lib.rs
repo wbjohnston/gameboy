@@ -33,7 +33,7 @@ impl Gameboy {
     pub fn new_with_cartridge(cartridge: cartridge::Cartridge) -> Self {
         Gameboy {
             mmu: mmu::MMU {
-                cartridge: Some(Box::new(cartridge)),
+                cartridge: Some(cartridge),
                 ..mmu::MMU::default()
             },
             ..Gameboy::default()

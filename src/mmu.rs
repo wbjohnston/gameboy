@@ -7,7 +7,7 @@ use {
 #[derivative(Debug)]
 pub struct MMU {
   #[derivative(Debug = "ignore")]
-  pub cartridge: Option<Box<Cartridge>>,
+  pub cartridge: Option<Cartridge>,
   #[derivative(Debug = "ignore")]
   pub bios: [u8; Self::BIOS_SIZE],
   #[derivative(Debug = "ignore")]
@@ -43,61 +43,68 @@ impl Default for MMU {
 }
 
 impl MMU {
+  //=================================================================================
+  // #region Memory Map
+  //=================================================================================
   // 0000-3FFF   16KB ROM Bank 00     (in cartridge, fixed at bank 00)
   //    0000-00FF bios
   pub const BIOS_START_ADDRESS: u16 = 0x0000;
-  pub const BIOS_END_ADDRESS: u16 = 0x00FF;
-  pub const BIOS_SIZE: usize = (Self::BIOS_END_ADDRESS - Self::BIOS_START_ADDRESS + 1) as usize;
+  pub const BIOS_END_ADDRESS: u16   = 0x00FF;
+  pub const BIOS_SIZE: usize        = (Self::BIOS_END_ADDRESS - Self::BIOS_START_ADDRESS + 1) as usize;
 
   // 4000-7FFF   16KB ROM Bank 01..NN (in cartridge, switchable bank number)
   pub const CARTRIDGE_START_ADDRESS: u16 = 0x0000;
-  pub const CARTRIDGE_END_ADDRESS: u16 = 0x7FFF;
+  pub const CARTRIDGE_END_ADDRESS: u16   = 0x7FFF;
+  pub const CARTRIDGE_EMPTY_READ_VALUE : u8 = 0xFF;
 
   // 8000-9FFF   8KB Video RAM (VRAM) (switchable bank 0-1 in CGB Mode)
   pub const VRAM_START_ADDRESS: u16 = 0x8000;
-  pub const VRAM_END_ADDRESS: u16 = 0x9FFF;
-  pub const VRAM_SIZE: usize = (Self::VRAM_END_ADDRESS - Self::VRAM_START_ADDRESS + 1) as usize;
+  pub const VRAM_END_ADDRESS: u16   = 0x9FFF;
+  pub const VRAM_SIZE: usize        = (Self::VRAM_END_ADDRESS - Self::VRAM_START_ADDRESS + 1) as usize;
 
   // A000-BFFF   8KB External RAM     (in cartridge, switchable bank, if any)
   pub const EXTRAM_START_ADDRESS: u16 = 0xA000;
-  pub const EXTRAM_END_ADDRESS: u16 = 0xBFFF;
+  pub const EXTRAM_END_ADDRESS: u16   = 0xBFFF;
 
   // C000-CFFF   4KB Work RAM Bank 0 (WRAM)
   pub const RAM_START_ADDRESS: u16 = 0xC000;
-  pub const RAM_END_ADDRESS: u16 = 0xCFFF;
-  pub const RAM_SIZE: usize = (Self::RAM_END_ADDRESS - Self::RAM_START_ADDRESS + 1) as usize;
+  pub const RAM_END_ADDRESS: u16   = 0xCFFF;
+  pub const RAM_SIZE: usize        = (Self::RAM_END_ADDRESS - Self::RAM_START_ADDRESS + 1) as usize;
 
   // D000-DFFF   4KB Work RAM Bank 1 (WRAM)  (switchable bank 1-7 in CGB Mode)
   pub const SRAM_START_ADDRESS: u16 = 0xD000;
-  pub const SRAM_END_ADDRESS: u16 = 0xDFFF;
-  pub const SRAM_SIZE: usize = (Self::SRAM_END_ADDRESS - Self::SRAM_START_ADDRESS + 1) as usize;
+  pub const SRAM_END_ADDRESS: u16   = 0xDFFF;
+  pub const SRAM_SIZE: usize        = (Self::SRAM_END_ADDRESS - Self::SRAM_START_ADDRESS + 1) as usize;
 
   // E000-FDFF   Same as C000-DDFF (ECHO)    (typically not used)
   pub const ERAM_START_ADDRESS: u16 = 0xE000;
-  pub const ERAM_END_ADDRESS: u16 = 0xFDFF;
+  pub const ERAM_END_ADDRESS: u16   = 0xFDFF;
 
   // FE00-FE9F   Sprite Attribute Table (OAM)
   pub const OAM_START_ADDRESS: u16 = 0xFE00;
-  pub const OAM_END_ADDRESS: u16 = 0xFE9F;
-  pub const OAM_SIZE: usize = (Self::OAM_END_ADDRESS - Self::OAM_START_ADDRESS + 1) as usize;
+  pub const OAM_END_ADDRESS: u16   = 0xFE9F;
+  pub const OAM_SIZE: usize        = (Self::OAM_END_ADDRESS - Self::OAM_START_ADDRESS + 1) as usize;
 
   // FEA0-FEFF   Not Usable
   pub const UNUSABLE_START_ADDRESS: u16 = 0xFEA0;
-  pub const UNUSABLE_END_ADDRESS: u16 = 0xFEFF;
-  pub const UNUSABLE_READ_VALUE: u8 = 0xFF;
+  pub const UNUSABLE_END_ADDRESS: u16   = 0xFEFF;
+  pub const UNUSABLE_READ_VALUE: u8     = 0xFF;
 
   // FF00-FF7F   I/O Ports
-  pub const IO_START_ADDRESS: u16 = 0xFF00;
+  pub const IO_START_ADDRESS: u16              = 0xFF00;
   pub const BIOS_DISABLE_REGISTER_ADDRESS: u16 = 0xFF50;
-  pub const IO_END_ADDRESS: u16 = 0xFF7F;
-  pub const IO_SIZE: usize = (Self::IO_END_ADDRESS - Self::IO_START_ADDRESS + 1) as usize;
+  pub const IO_END_ADDRESS: u16                = 0xFF7F;
+  pub const IO_SIZE: usize                     = (Self::IO_END_ADDRESS - Self::IO_START_ADDRESS + 1) as usize;
 
   // FF80-FFFE   High RAM (HRAM)
   pub const HRAM_START_ADDRESS: u16 = 0xFF80;
-  pub const HRAM_END_ADDRESS: u16 = 0xFFFE;
-  pub const HRAM_SIZE: usize = (Self::HRAM_END_ADDRESS - Self::HRAM_START_ADDRESS + 1) as usize;
+  pub const HRAM_END_ADDRESS: u16   = 0xFFFE;
+  pub const HRAM_SIZE: usize        = (Self::HRAM_END_ADDRESS - Self::HRAM_START_ADDRESS + 1) as usize;
 
   pub const INTERRUPT_ENABLE_REG_ADDRESS: u16 = 0xFFFF;
+  //=================================================================================
+  // #endregion
+  //=================================================================================
 }
 
 impl MMU {
@@ -120,7 +127,7 @@ impl Memory for MMU {
       }
       // 4000-7FFF   16KB ROM Bank 01..NN (in cartridge, switchable bank number)
       Self::CARTRIDGE_START_ADDRESS..=Self::CARTRIDGE_END_ADDRESS => {
-        self.cartridge.as_ref().map(|x| x.read(address)).unwrap()
+        self.cartridge.as_ref().map(|x| x.read(address)).unwrap_or(Self::CARTRIDGE_EMPTY_READ_VALUE)
       }
       // 8000-9FFF   8KB Video RAM (VRAM) (switchable bank 0-1 in CGB Mode)
       Self::VRAM_START_ADDRESS..=Self::VRAM_END_ADDRESS => {
@@ -131,7 +138,7 @@ impl Memory for MMU {
         .cartridge
         .as_ref()
         .map(|x| x.read_ram(address - Self::EXTRAM_START_ADDRESS))
-        .unwrap(),
+        .unwrap_or(Self::CARTRIDGE_EMPTY_READ_VALUE),
       // C000-CFFF   4KB Work RAM Bank 0 (WRAM)
       Self::RAM_START_ADDRESS..=Self::RAM_END_ADDRESS => {
         self.ram[(address - Self::RAM_START_ADDRESS) as usize]
@@ -217,7 +224,7 @@ mod test {
     let bios_value = 0x02;
     let cartridge = Cartridge::maybe_from_bytes(&[cartridge_value; 0x1000]).unwrap();
     let mut mmu = MMU {
-      cartridge: Some(Box::new(cartridge)),
+      cartridge: Some(cartridge),
       bios: [bios_value; MMU::BIOS_SIZE],
       ..MMU::default()
     };
@@ -238,5 +245,42 @@ mod test {
     assert_eq!(mmu.read(MMU::BIOS_START_ADDRESS), cartridge_value);
     assert_eq!(mmu.read(MMU::BIOS_END_ADDRESS), cartridge_value);
     assert_eq!(mmu.read(MMU::BIOS_END_ADDRESS + 1), cartridge_value);
+  }
+
+  #[test]
+  fn address_is_read_from_correct_region() {
+    let cartridge_value = 0x1;
+    let vram_value = 0x2;
+    let oam_value = 0x3;
+    let iom_value = 0x4;
+    let ram_value = 0x5;
+    let sram_value = 0x6;
+    let hram_value = 0x7;
+    let ie_value = 0x8;
+    let mmu = MMU {
+      cartridge: Cartridge::maybe_from_bytes(&[cartridge_value; 0xFFFF]),
+      vram: [vram_value; MMU::VRAM_SIZE],
+      oam: [oam_value; MMU::OAM_SIZE],
+      iom: [iom_value; MMU::IO_SIZE],
+      ram: [ram_value; MMU::RAM_SIZE],
+      sram: [sram_value; MMU::SRAM_SIZE],
+      hram: [hram_value; MMU::HRAM_SIZE],
+      ie: ie_value,
+      ..MMU::default()
+    };
+
+    let test = |value, start, end| {
+      assert_eq!(mmu.read(start), value);
+      assert_eq!(mmu.read(end), value);
+    };
+
+    test(cartridge_value, MMU::CARTRIDGE_START_ADDRESS, MMU::CARTRIDGE_END_ADDRESS);
+    test(vram_value, MMU::VRAM_START_ADDRESS, MMU::VRAM_END_ADDRESS);
+    test(oam_value, MMU::OAM_START_ADDRESS, MMU::OAM_END_ADDRESS);
+    test(iom_value, MMU::IO_START_ADDRESS, MMU::IO_END_ADDRESS);
+    test(ram_value, MMU::RAM_START_ADDRESS, MMU::RAM_END_ADDRESS);
+    test(sram_value, MMU::SRAM_START_ADDRESS, MMU::SRAM_END_ADDRESS);
+    test(hram_value, MMU::HRAM_START_ADDRESS, MMU::HRAM_END_ADDRESS);
+    test(ie_value, MMU::INTERRUPT_ENABLE_REG_ADDRESS, MMU::INTERRUPT_ENABLE_REG_ADDRESS);
   }
 }
