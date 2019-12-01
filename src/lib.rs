@@ -1,4 +1,3 @@
-#![feature(exclusive_range_pattern)]
 pub mod cpu;
 pub mod mmu;
 pub mod ppu;

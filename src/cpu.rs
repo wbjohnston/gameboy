@@ -1076,7 +1076,7 @@ impl CPU {
       // 2  12
       // - - - -
       0xE0 => {
-        mmu.write(MMU::IO_START_ADDR + mmu.read(self.pc + 1) as u16, self.a());
+        mmu.write(MMU::IO_START_ADDRESS + mmu.read(self.pc + 1) as u16, self.a());
         self.pc += 2;
         12
       }

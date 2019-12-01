@@ -26,6 +26,10 @@ impl Cartridge {
       None
     }
   }
+
+  pub fn read_ram(&self, address: u16) -> u8 {
+    unimplemented!()
+  }
 }
 
 impl Memory for Cartridge {
