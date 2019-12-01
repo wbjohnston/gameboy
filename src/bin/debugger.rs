@@ -83,7 +83,7 @@ fn execute_command(commands: &[&str], gameboy: &mut Gameboy) -> Result<bool, Err
         execute_command(&["mpc"], gameboy)?;
         Ok(false)
       }
-      [n] if n.chars().all(char::is_numeric) => {
+      [n] if n.clone().chars().all(char::is_numeric) => {
         let n = n.parse().unwrap();
         for _ in 0..n {
           gameboy.step();

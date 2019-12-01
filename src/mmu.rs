@@ -88,6 +88,7 @@ impl MMU {
 
   // FF00-FF7F   I/O Ports
   pub const IO_START_ADDRESS: u16 = 0xFF00;
+  pub const BIOS_DISABLE_REGISTER_ADDRESS: u16 = 0xFF50;
   pub const IO_END_ADDRESS: u16 = 0xFF7F;
   pub const IO_SIZE: usize = (Self::IO_END_ADDRESS - Self::IO_START_ADDRESS + 1) as usize;
 
@@ -97,9 +98,6 @@ impl MMU {
   pub const HRAM_SIZE: usize = (Self::HRAM_END_ADDRESS - Self::HRAM_START_ADDRESS + 1) as usize;
 
   pub const INTERRUPT_ENABLE_REG_ADDRESS: u16 = 0xFFFF;
-
-  // registers
-  pub const BIOS_DISABLE_REGISTER_ADDRESS: u16 = 0xFF50;
 }
 
 impl MMU {
